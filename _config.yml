@@ -1,0 +1,24 @@
+# GitHub Pages Jekyll Configuration
+# This file optimizes GitHub Pages deployment
+
+theme: jekyll-theme-minimal
+title: Tournament Generator
+description: Create and manage tournaments with ease
+show_downloads: false
+
+# Markdown processor
+markdown: kramdown
+
+# Plugins
+plugins:
+  - jekyll-sitemap
+
+# Collections
+collections: null
+
+# Exclude files from processing
+exclude:
+  - .gitignore
+  - README.md
+  - LICENSE
+  - CNAME

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏆 Tournament Generator</h1>
+            <p>Create and manage tournaments with ease</p>
+        </header>
+
+        <!-- Setup Screen -->
+        <div id="setupScreen" class="screen active setup-screen">
+            <form id="tournamentForm">
+                <!-- Tournament Type Selection -->
+                <div class="form-section">
+                    <h2>Tournament Type</h2>
+                    <div class="tournament-types">
+                        <div class="tournament-option" data-type="knockout">
+                            <h3>🎯 Knockout</h3>
+                            <p>Single elimination</p>
+                        </div>
+                        <div class="tournament-option" data-type="league">
+                            <h3>📊 League</h3>
+                            <p>Points table</p>
+                        </div>
+                        <div class="tournament-option" data-type="round-robin">
+                            <h3>⚽ Round Robin</h3>
+                            <p>Multi-round football</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tournament Name -->
+                <div class="form-section">
+                    <label for="tournamentName">Tournament Name</label>
+                    <input
+                        type="text"
+                        id="tournamentName"
+                        placeholder="e.g., Summer Championship 2024"
+                        maxlength="50"
+                    >
+                </div>
+
+                <!-- Round Robin Options -->
+                <div class="form-section" id="roundRobinOptions" style="display: none;">
+                    <h2>⚙️ Tournament Options</h2>
+
+                    <label>Number of Rounds</label>
+                    <div class="button-group" style="gap: 8px; margin-bottom: 20px;">
+                        <label style="display: flex; align-items: center; font-weight: normal; margin: 0;">
+                            <input type="radio" name="roundCount" value="1" checked>
+                            <span style="margin-left: 8px;">1 Round</span>
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal; margin: 0;">
+                            <input type="radio" name="roundCount" value="2">
+                            <span style="margin-left: 8px;">2 Rounds</span>
+                        </label>
+                        <label style="display: flex; align-items: center; font-weight: normal; margin: 0;">
+                            <input type="radio" name="roundCount" value="3">
+                            <span style="margin-left: 8px;">3 Rounds</span>
+                        </label>
+                    </div>
+
+                    <label style="display: flex; align-items: center; font-weight: normal;">
+                        <input type="checkbox" id="knockoutFinals" checked>
+                        <span style="margin-left: 10px; font-weight: 500;">Add Knockout Finals</span>
+                    </label>
+                    <p class="help-text">Top teams advance to knockout bracket based on standings</p>
+
+                    <label for="teamsAdvancing" style="margin-top: 15px;">Teams Advancing to Finals</label>
+                    <select id="teamsAdvancing" style="width: 100%; padding: 12px; border: 1px solid var(--gray-300); border-radius: 6px; margin-bottom: 10px;">
+                        <option value="4">Top 4 (Semifinals)</option>
+                        <option value="8">Top 8 (Quarterfinals)</option>
+                        <option value="16">Top 16</option>
+                    </select>
+                </div>
+
+                <!-- Players Input -->
+                <div class="form-section">
+                    <h2>Add Players/Teams</h2>
+                    <div class="input-tabs">
+                        <button type="button" class="input-tab active" data-tab="manual">Manual Entry</button>
+                        <button type="button" class="input-tab" data-tab="paste">Paste List</button>
+                    </div>
+
+                    <!-- Manual Entry Tab -->
+                    <div class="input-content active" data-tab="manual">
+                        <label for="playerName">Player Name</label>
+                        <div class="button-group">
+                            <input
+                                type="text"
+                                id="playerName"
+                                placeholder="Enter player name"
+                                maxlength="30"
+                            >
+                            <button type="button" class="btn-primary btn-small" id="addPlayerBtn">Add Player</button>
+                        </div>
+                    </div>
+
+                    <!-- Paste List Tab -->
+                    <div class="input-content" data-tab="paste">
+                        <label for="playerList">Paste player names (comma-separated or one per line)</label>
+                        <textarea
+                            id="playerList"
+                            placeholder="Player 1, Player 2, Player 3&#10;or&#10;Player 1&#10;Player 2&#10;Player 3"
+                        ></textarea>
+                        <button type="button" class="btn-primary btn-small" id="importPlayersBtn">Import Players</button>
+                        <p class="help-text">Max 64 players per tournament</p>
+                    </div>
+                </div>
+
+                <!-- Players Display -->
+                <div class="form-section">
+                    <label>Players Added: <span id="playerCount">0</span>/64</label>
+                    <div class="player-list" id="playersList"></div>
+                    <button type="button" class="btn-secondary btn-small" id="clearPlayersBtn">Clear All</button>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="form-section">
+                    <button type="button" class="btn-secondary btn-small" id="randomizeBtn">🎲 Randomize Order</button>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary" id="startBtn">Start Tournament</button>
+                    <button type="button" class="btn-secondary" id="loadBtn">Load Previous</button>
+                </div>
+
+                <div id="formError" class="error" style="display: none;"></div>
+            </form>
+        </div>
+
+        <!-- Tournament Screen -->
+        <div id="tournamentScreen" class="screen tournament-screen">
+            <div class="tournament-header">
+                <div>
+                    <h2 id="tournamentTitle">Tournament</h2>
+                    <p id="tournamentType" style="color: var(--gray-500); font-size: 14px;"></p>
+                </div>
+                <div class="tournament-controls">
+                    <button class="btn-secondary btn-small" id="exportBtn">📥 Export</button>
+                    <button class="btn-secondary btn-small" id="resetBtn">🔄 New Tournament</button>
+                    <button class="btn-danger btn-small" id="deleteBtn">🗑️ Delete</button>
+                </div>
+            </div>
+
+            <div id="statsSection" class="stats-grid" style="display: none;"></div>
+
+            <div id="tournamentContent"></div>
+        </div>
+    </div>
+
+    <!-- Score Modal -->
+    <div id="scoreModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Enter Score</h2>
+                <p id="matchInfo"></p>
+            </div>
+            <div id="matchForm" class="modal-body"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="cancelBtn">Cancel</button>
+                <button type="button" class="btn-primary" id="submitScoreBtn">Save Score</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
