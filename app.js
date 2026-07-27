@@ -15,6 +15,8 @@ const TournamentApp = {
             teamsAdvancing: 4,
             currentRound: 1,
             knockoutMatches: [],
+            useGroupStage: false,
+            groups: [],
         };
     },
 
@@ -249,6 +251,7 @@ const TournamentApp = {
 
         if (this.state.tournamentType === 'round-robin') {
             this.state.roundCount = parseInt(document.querySelector('input[name="roundCount"]:checked').value, 10) || 1;
+            this.state.useGroupStage = document.getElementById('useGroupStage').checked;
             this.state.hasKnockoutFinals = document.getElementById('knockoutFinals').checked;
             this.state.teamsAdvancing = parseInt(document.getElementById('teamsAdvancing').value, 10);
         }
@@ -407,26 +410,67 @@ const TournamentApp = {
         this.updateLeagueStandings();
     },
 
+    divideIntoGroups(players, groupSize = 4) {
+        const groups = [];
+        const numGroups = Math.ceil(players.length / groupSize);
+        const baseSize = Math.floor(players.length / numGroups);
+        const extraTeams = players.length % numGroups;
+
+        let idx = 0;
+        for (let g = 0; g < numGroups; g++) {
+            const size = baseSize + (g < extraTeams ? 1 : 0);
+            groups.push(players.slice(idx, idx + size));
+            idx += size;
+        }
+        return groups;
+    },
+
     generateMultiRoundRobin() {
         const matches = [];
         const players = this.state.players;
 
-        for (let round = 1; round <= this.state.roundCount; round++) {
-            players.forEach((p1, i) => {
-                players.forEach((p2, j) => {
-                    if (i < j) {
-                        matches.push({
-                            id: `R${round}-${i}-${j}`,
-                            round,
-                            player1: p1,
-                            player2: p2,
-                            score1: null,
-                            score2: null,
-                            completed: false,
+        if (this.state.useGroupStage) {
+            this.state.groups = this.divideIntoGroups(players, 4);
+            let matchId = 0;
+            for (let round = 1; round <= this.state.roundCount; round++) {
+                this.state.groups.forEach((group, groupIdx) => {
+                    group.forEach((p1, i) => {
+                        group.forEach((p2, j) => {
+                            if (i < j) {
+                                matches.push({
+                                    id: `G${groupIdx + 1}-R${round}-${matchId}`,
+                                    round,
+                                    group: groupIdx + 1,
+                                    player1: p1,
+                                    player2: p2,
+                                    score1: null,
+                                    score2: null,
+                                    completed: false,
+                                });
+                                matchId++;
+                            }
                         });
-                    }
+                    });
                 });
-            });
+            }
+        } else {
+            for (let round = 1; round <= this.state.roundCount; round++) {
+                players.forEach((p1, i) => {
+                    players.forEach((p2, j) => {
+                        if (i < j) {
+                            matches.push({
+                                id: `R${round}-${i}-${j}`,
+                                round,
+                                player1: p1,
+                                player2: p2,
+                                score1: null,
+                                score2: null,
+                                completed: false,
+                            });
+                        }
+                    });
+                });
+            }
         }
 
         this.state.matches = matches;
@@ -435,9 +479,31 @@ const TournamentApp = {
     },
 
     generateKnockoutFinals() {
-        const top = this.state.standings
-            .slice(0, this.state.teamsAdvancing)
-            .map(s => s.player);
+        let top = [];
+
+        if (this.state.useGroupStage) {
+            // Get top teams from each group
+            const numGroups = this.state.groups.length;
+            const teamsPerGroup = Math.ceil(this.state.teamsAdvancing / numGroups);
+
+            for (let g = 0; g < numGroups; g++) {
+                const groupStandings = this.state.standings.filter(s => {
+                    const inGroup = this.state.groups[g].includes(s.player);
+                    return inGroup;
+                });
+
+                top.push(...groupStandings.slice(0, teamsPerGroup).map(s => s.player));
+                if (top.length >= this.state.teamsAdvancing) {
+                    top = top.slice(0, this.state.teamsAdvancing);
+                    break;
+                }
+            }
+        } else {
+            top = this.state.standings
+                .slice(0, this.state.teamsAdvancing)
+                .map(s => s.player);
+        }
+
         this.state.knockoutMatches = this.buildBracket(top);
     },
 
@@ -515,11 +581,16 @@ const TournamentApp = {
                 typeLabel = '📊 League · Points Table';
                 break;
             case 'round-robin': {
-                const rounds = `${this.state.roundCount} Round${this.state.roundCount > 1 ? 's' : ''}`;
+                let typeStr = '⚽ Round Robin';
+                if (this.state.useGroupStage) {
+                    typeStr += ` · ${this.state.groups.length} Groups`;
+                } else {
+                    typeStr += ` · ${this.state.roundCount} Round${this.state.roundCount > 1 ? 's' : ''}`;
+                }
                 const finals = this.state.hasKnockoutFinals
-                    ? (this.state.teamsAdvancing === 2 ? ' + Final' : ` + Top ${this.state.teamsAdvancing} Knockouts`)
+                    ? (this.state.teamsAdvancing === 2 ? ' + Final' : ` + Knockouts`)
                     : '';
-                typeLabel = `⚽ Round Robin · ${rounds}${finals}`;
+                typeLabel = typeStr + finals;
                 break;
             }
             default:
@@ -775,8 +846,8 @@ const TournamentApp = {
         }
 
         const stats = [
-            { label: 'League Matches', value: `${completed}/${total}`, progress: percentage },
-            { label: 'Rounds', value: this.state.roundCount },
+            { label: this.state.useGroupStage ? 'Group Matches' : 'League Matches', value: `${completed}/${total}`, progress: percentage },
+            { label: this.state.useGroupStage ? 'Groups' : 'Rounds', value: this.state.useGroupStage ? this.state.groups.length : this.state.roundCount },
             { label: 'Scoring · W-D-L', value: '⚽ 3-1-0' },
         ];
         if (this.state.hasKnockoutFinals && this.state.knockoutMatches.length > 0) {
@@ -789,35 +860,98 @@ const TournamentApp = {
 
         let html = this.championBannerHTML();
 
-        html += '<div class="section-title-row"><h3 class="section-title">Standings</h3>';
-        if (this.state.hasKnockoutFinals) {
-            const finalLabel = this.state.teamsAdvancing === 2 ? 'play the Final' : 'advance to Knockouts';
-            html += `<span class="section-hint">Top ${this.state.teamsAdvancing} ${finalLabel}</span>`;
-        }
-        html += '</div>';
-        html += this.standingsTableHTML(this.state.hasKnockoutFinals && leagueDone);
+        if (this.state.useGroupStage) {
+            // Show group standings
+            for (let g = 0; g < this.state.groups.length; g++) {
+                const groupName = String.fromCharCode(65 + g); // A, B, C, ...
+                const groupStandings = this.state.standings.filter(s => this.state.groups[g].includes(s.player));
 
-        for (let round = 1; round <= this.state.roundCount; round++) {
-            const roundMatches = this.state.matches.filter(m => m.round === round);
-            const roundDone = roundMatches.filter(m => m.completed).length;
+                html += `<h3 class="section-title">Group ${groupName}</h3>`;
+                html += '<div class="table-wrap"><table class="league-table"><thead><tr>';
+                html += '<th>#</th><th class="col-team">Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th>';
+                html += '</tr></thead><tbody>';
 
-            html += `
-                <div class="section-title-row">
-                    <h3 class="section-title">Round ${round}</h3>
-                    <span class="section-hint">${roundDone}/${roundMatches.length} complete</span>
-                </div>
-            `;
-            html += '<div class="matches-section">';
+                groupStandings.forEach((standing, idx) => {
+                    const gd = standing.pointsFor - standing.pointsAgainst;
+                    const gdLabel = gd > 0 ? `+${gd}` : gd;
+                    html += `
+                        <tr>
+                            <td><span class="league-position">${idx + 1}</span></td>
+                            <td class="col-team"><strong>${this.esc(standing.player)}</strong></td>
+                            <td>${standing.played}</td>
+                            <td>${standing.won}</td>
+                            <td>${standing.drawn}</td>
+                            <td>${standing.lost}</td>
+                            <td>${standing.pointsFor}</td>
+                            <td>${standing.pointsAgainst}</td>
+                            <td>${gdLabel}</td>
+                            <td><strong>${standing.points}</strong></td>
+                        </tr>
+                    `;
+                });
 
-            const sorted = [...roundMatches].sort((a, b) => {
-                if (a.completed !== b.completed) return a.completed - b.completed;
-                return a.id.localeCompare(b.id, undefined, { numeric: true });
-            });
-            sorted.forEach(match => {
-                html += this.matchItemHTML(match, '');
-            });
+                html += '</tbody></table></div>';
+            }
 
+            // Show matches by group
+            for (let g = 0; g < this.state.groups.length; g++) {
+                const groupName = String.fromCharCode(65 + g);
+                for (let round = 1; round <= this.state.roundCount; round++) {
+                    const groupMatches = this.state.matches.filter(m => m.group === g + 1 && m.round === round);
+                    if (groupMatches.length === 0) continue;
+
+                    const roundDone = groupMatches.filter(m => m.completed).length;
+                    html += `
+                        <div class="section-title-row">
+                            <h3 class="section-title">Group ${groupName} · Round ${round}</h3>
+                            <span class="section-hint">${roundDone}/${groupMatches.length} complete</span>
+                        </div>
+                    `;
+                    html += '<div class="matches-section">';
+
+                    const sorted = [...groupMatches].sort((a, b) => {
+                        if (a.completed !== b.completed) return a.completed - b.completed;
+                        return a.id.localeCompare(b.id, undefined, { numeric: true });
+                    });
+                    sorted.forEach(match => {
+                        html += this.matchItemHTML(match, '');
+                    });
+
+                    html += '</div>';
+                }
+            }
+        } else {
+            // Regular standings (non-group stage)
+            html += '<div class="section-title-row"><h3 class="section-title">Standings</h3>';
+            if (this.state.hasKnockoutFinals) {
+                const finalLabel = this.state.teamsAdvancing === 2 ? 'play the Final' : 'advance to Knockouts';
+                html += `<span class="section-hint">Top ${this.state.teamsAdvancing} ${finalLabel}</span>`;
+            }
             html += '</div>';
+            html += this.standingsTableHTML(this.state.hasKnockoutFinals && leagueDone);
+
+            for (let round = 1; round <= this.state.roundCount; round++) {
+                const roundMatches = this.state.matches.filter(m => m.round === round);
+                const roundDone = roundMatches.filter(m => m.completed).length;
+
+                html += `
+                    <div class="section-title-row">
+                        <h3 class="section-title">Round ${round}</h3>
+                        <span class="section-hint">${roundDone}/${roundMatches.length} complete</span>
+                    </div>
+                `;
+                html += '<div class="matches-section">';
+
+                const sorted = [...roundMatches].sort((a, b) => {
+                    if (a.completed !== b.completed) return a.completed - b.completed;
+                    return a.id.localeCompare(b.id, undefined, { numeric: true });
+                });
+                sorted.forEach(match => {
+                    html += this.matchItemHTML(match, '');
+                });
+
+                html += '</div>';
+            }
         }
 
         if (this.state.hasKnockoutFinals && leagueDone && this.state.knockoutMatches.length > 0) {
@@ -944,6 +1078,8 @@ const TournamentApp = {
         document.getElementById('playerList').value = '';
         document.querySelectorAll('.tournament-option').forEach(e => e.classList.remove('selected'));
         document.getElementById('roundRobinOptions').style.display = 'none';
+        document.getElementById('useGroupStage').checked = false;
+        document.getElementById('knockoutFinals').checked = true;
         this.renderPlayerList();
     },
 

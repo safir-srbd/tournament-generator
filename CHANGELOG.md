@@ -1,5 +1,14 @@
 # Changelog - Football Features Update
 
+## Version 2.3 - World Cup Group Stage
+
+### 🌍 New Features
+- **Group Stage for Round Robin** — divide teams into groups of 4–5 (like the World Cup), each group plays a mini-league, standings shown per group, and top teams from each group advance to knockout finals
+- Groups automatically sized: 8 teams = 2 groups of 4, 12 teams = 3 groups of 4, 10 teams = 2 groups (one 5, one 5), etc.
+- When group stage is enabled, knockout finals select the top N teams from each group rather than top N overall
+
+---
+
 ## Version 2.2 - Dark Mode, UI Polish & Bug Fixes
 
 ### 🌙 New Features
