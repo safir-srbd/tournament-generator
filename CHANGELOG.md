@@ -1,5 +1,28 @@
 # Changelog - Football Features Update
 
+## Version 2.2 - Dark Mode, UI Polish & Bug Fixes
+
+### 🌙 New Features
+- **Dark mode** with a toggle in the header — follows your system preference on first visit, remembers your choice, no flash on reload
+- **Editable scores everywhere** — completed matches (league and knockout) now show an "✏️ Edit Score" button; editing a knockout result automatically re-advances the correct winner and resets any downstream matches that are no longer valid
+- **Champion banner** displayed when a tournament is decided
+- **Import tournament** button on the setup screen (restores exported JSON backups)
+- **Progress bar** in the stats cards
+- Score modal: Enter saves, Escape/backdrop-click cancels, inline validation messages instead of alert popups
+
+### 🐛 Bug Fixes
+- Fixed American football emoji (🏈) shown in the Round Robin scoring card — now ⚽
+- Fixed knockout finals scores being impossible to enter (score modal never opened for `knockout-` matches)
+- Fixed knockout bracket generation for 8+ players (wrong number of rounds/matches; later rounds now show TBD until winners are known)
+- Fixed bracket round labels (semi-finals were labeled "Final")
+- Fixed knockout finals seeding — now proper 1v4 / 2v3 (and 1v8, 2v7… for Top 8)
+- Knockout matches now reject draws with a clear message
+- Added the missing Goals For tiebreaker (Points → GD → GF)
+- Byes are distributed to top seeds and can never meet each other
+- Export now includes knockout finals and tournament options; player names are HTML-escaped
+
+---
+
 ## Version 2.0 - Football Enhancement Update
 
 ### ⚽ New Features
