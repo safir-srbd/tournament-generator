@@ -181,19 +181,44 @@ After both semifinals:
 
 ✅ **Success**: Math checks out!
 
-### Test 6: Top N Advancement (2 minutes)
+### Test 6: Top 2 Finals Only (3 minutes)
 
-**Goal**: Verify correct teams advance
+**Goal**: Test direct final match without bracket
+
+1. Create Round Robin with **4 teams**
+2. Configure:
+   - Rounds: 1
+   - Knockout Finals: YES
+   - Teams Advancing: **Top 2 (Final Only)**
+3. Add teams: A, B, C, D
+4. Enter all 6 league matches (create different winners)
+5. Check standings - top 2 should be highlighted
+6. Scroll down - should show **ONLY** a Final match (no semifinals)
+7. Enter final score
+8. Check that winner is crowned
+
+**Expected Result**:
+- No bracket visualization
+- Single match: 1st vs 2nd seed
+- "🏆 Final" label
+- Clear champion after one match
+
+✅ **Success**: Direct final appears with top 2 teams!
+
+### Test 7: Top N Advancement (2 minutes)
+
+**Goal**: Verify correct teams advance for all options
 
 1. Create Round Robin with **8 teams**
 2. Try each advancement option:
-   - **Top 4**: Only 4 teams in finals
+   - **Top 2**: Only 2 teams, direct final match
+   - **Top 4**: Only 4 teams in finals (2 semifinal matches)
    - **Top 8**: All 8 teams in finals (8-4-2-1 bracket)
    - **Top 16**: Would show 16 teams (show option even if fewer teams)
 
-✅ **Success**: Correct number of teams in bracket!
+✅ **Success**: Correct number of teams in bracket or final!
 
-### Test 7: Data Persistence (1 minute)
+### Test 8: Data Persistence (1 minute)
 
 **Goal**: Verify data saves
 
@@ -205,7 +230,7 @@ After both semifinals:
 
 ✅ **Success**: Tournament loaded with all scores!
 
-### Test 8: Export & Backup (2 minutes)
+### Test 9: Export & Backup (2 minutes)
 
 **Goal**: Export tournament
 

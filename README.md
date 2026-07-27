@@ -41,7 +41,11 @@ All tournament types use professional football/soccer scoring:
 ### Advanced Round Robin Features
 - **Multi-Round Leagues**: 1, 2, or 3 rounds (each team plays opponents 1-3 times)
 - **Knockout Finals**: Automatically generate knockout bracket from top-ranked teams
-- **Options**: Choose between Top 4, Top 8, or Top 16 advancing to finals
+- **Options**: Choose between:
+  - **Top 2 (Final Only)**: Direct championship match
+  - **Top 4 (Semifinals)**: Semi-finals + Final
+  - **Top 8 (Quarterfinals)**: Quarter-finals bracket
+  - **Top 16**: Extended knockout phase
 - **Complete Integration**: Finals generated after all league matches complete
 
 ## File Structure

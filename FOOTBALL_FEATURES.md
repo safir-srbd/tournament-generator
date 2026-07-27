@@ -66,6 +66,7 @@ Advanced tournament combining league and knockout:
 
 #### Knockout Finals (Optional)
 Automatically generates knockout bracket:
+- **Top 2 (Final Only)**: Direct championship match (no bracket)
 - **Top 4 (Semifinals)**: 2 matches → Final
 - **Top 8 (Quarterfinals)**: 4 → 2 → 1 match
 - **Top 16**: 8 → 4 → 2 → 1 match
@@ -98,8 +99,9 @@ Number of Rounds:
   ○ 3 Rounds (three complete cycles)
 
 ☑ Add Knockout Finals (optional)
-  - Top 4 (default)
-  - Top 8
+  - Top 2 (Final Only) - Direct championship
+  - Top 4 (Semifinals)
+  - Top 8 (Quarterfinals)
   - Top 16
 ```
 

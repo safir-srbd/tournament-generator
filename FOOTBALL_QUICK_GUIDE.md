@@ -34,7 +34,7 @@ Click **⚽ Round Robin** button
 ```
 Rounds:    1 / 2 / 3
 Finals:    ☑ (optional)
-Teams Advance: Top 4 / 8 / 16
+Teams Advance: Top 2 / 4 / 8 / 16
 ```
 
 ### 3. Add Teams
@@ -124,6 +124,13 @@ Each team plays: 9 times (3x each opponent)
 
 **After league matches complete:**
 
+### Top 2 → Final Only
+```
+1st seed vs 2nd seed → Champion
+Direct championship, no bracket
+Perfect for: Quick decision, clear winner
+```
+
 ### Top 4 → Semifinals
 ```
 1st seed vs 4th seed → Winner A
@@ -164,15 +171,19 @@ Winners play semifinals
 
 **Total Matches (Round Robin):** `(Teams × (Teams - 1)) ÷ 2 × Rounds`
 
-## Common Tournament Sizes
+## Common Tournament Sizes & Finals Options
 
-| Teams | 1 Round | 2 Rounds | 3 Rounds | Best For |
-|-------|---------|----------|----------|----------|
-| 4 | 6 | 12 | 18 | Quick |
-| 6 | 15 | 30 | 45 | Small league |
-| 8 | 28 | 56 | 84 | Club tournament |
-| 12 | 66 | 132 | 198 | Large league |
-| 16 | 120 | 240 | 360 | Full season |
+| Teams | 1 Round | Finals | Best For |
+|-------|---------|--------|----------|
+| 2 | 1 | N/A | Head-to-head only |
+| 4 | 6 | Top 2, 4 | Quick tournament |
+| 6 | 15 | Top 2, 4 | Small league |
+| 8 | 28 | Top 2, 4, 8 | Club tournament |
+| 12 | 66 | Top 2, 4, 8 | Large league |
+| 16 | 120 | Top 2, 4, 8, 16 | Full season |
+
+**2-Round multiplies matches × 2 (home & away)**
+**3-Round multiplies matches × 3**
 
 ## Keyboard Shortcuts
 

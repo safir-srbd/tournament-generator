@@ -20,13 +20,14 @@
 
 #### 3. Knockout Finals in Round Robin
 - **Optional knockout bracket** after league phase completes
-- **Three advancement options**:
+- **Four advancement options**:
+  - Top 2 → Final Only (direct championship match)
   - Top 4 → Semifinals
   - Top 8 → Quarterfinals
   - Top 16 → Additional rounds
 - **Auto-seeding** based on league standings
 - Generated automatically when league phase ends
-- Maintains full bracket visualization
+- Maintains full bracket visualization (or single match for Top 2)
 
 #### 4. Advanced Standings Table
 - **New columns**:
@@ -175,6 +176,8 @@ state: {
 - Better validation for advancement numbers
 - Improved standings calculation for draws
 - Fixed bracket generation for odd team counts
+- Added Top 2 (Final Only) option for direct championship matches
+- Improved display labels for all advancement options
 
 ### 🔄 Backward Compatibility
 

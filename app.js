@@ -549,7 +549,7 @@ const TournamentApp = {
         let knockoutStatus = '';
         if (this.state.hasKnockoutFinals && this.state.knockoutMatches.length > 0) {
             const knockoutCompleted = this.state.knockoutMatches.filter(m => m.completed).length;
-            knockoutStatus = ` | Knockouts: ${knockoutCompleted}/${this.state.knockoutMatches.length}`;
+            knockoutStatus = ` | Finals: ${knockoutCompleted}/${this.state.knockoutMatches.length}`;
         }
 
         statsSection.innerHTML = `
@@ -576,7 +576,8 @@ const TournamentApp = {
         let html = '<h3 style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">';
         html += '<span>Final Standings</span>';
         if (this.state.hasKnockoutFinals && completed === total) {
-            html += `<span style="font-size: 13px; color: var(--gray-500); font-weight: normal;">Top ${this.state.teamsAdvancing} advance to Knockouts</span>`;
+            const finalLabel = this.state.teamsAdvancing === 2 ? 'play in Final' : `advance to Knockouts`;
+            html += `<span style="font-size: 13px; color: var(--gray-500); font-weight: normal;">Top ${this.state.teamsAdvancing} ${finalLabel}</span>`;
         }
         html += '</h3>';
 
@@ -672,9 +673,9 @@ const TournamentApp = {
                 let roundTitle;
 
                 if (numRounds === 1) {
-                    roundTitle = 'Final';
+                    roundTitle = this.state.teamsAdvancing === 2 ? '🏆 Final' : 'Final';
                 } else if (round == numRounds - 1) {
-                    roundTitle = 'Final';
+                    roundTitle = this.state.teamsAdvancing === 2 ? '🏆 Final' : 'Final';
                 } else if (round == numRounds - 2) {
                     roundTitle = 'Semi-Finals';
                 } else if (round == numRounds - 3) {
