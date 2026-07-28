@@ -138,6 +138,68 @@ const TournamentApp = {
         return arr;
     },
 
+    /*
+     * Build fixtures with the circle method used for league schedules. Each
+     * matchday contains every team at most once, so flattening the matchdays
+     * cannot leave one team playing a long run of back-to-back matches.
+     */
+    buildRoundRobinSchedule(players, legCount = 1) {
+        const rotation = [...players];
+        if (rotation.length % 2 !== 0) rotation.push(null); // one bye per matchday
+
+        const matchdays = [];
+        const matchdayCount = Math.max(0, rotation.length - 1);
+        const matchesPerDay = rotation.length / 2;
+
+        for (let matchday = 1; matchday <= matchdayCount; matchday++) {
+            const pairings = [];
+
+            for (let i = 0; i < matchesPerDay; i++) {
+                const left = rotation[i];
+                const right = rotation[rotation.length - 1 - i];
+                if (left === null || right === null) continue;
+
+                // Alternating the first pairing avoids always giving the fixed
+                // team the same home/away position.
+                const swap = i === 0 && matchday % 2 === 0;
+                pairings.push(swap
+                    ? { player1: right, player2: left }
+                    : { player1: left, player2: right });
+            }
+
+            matchdays.push(pairings);
+
+            // Keep the first team fixed and rotate all remaining teams.
+            if (rotation.length > 2) {
+                rotation.splice(1, 0, rotation.pop());
+            }
+        }
+
+        const fixtures = [];
+        for (let leg = 1; leg <= legCount; leg++) {
+            matchdays.forEach((pairings, dayIndex) => {
+                pairings.forEach(pairing => {
+                    const reverse = leg % 2 === 0;
+                    fixtures.push({
+                        player1: reverse ? pairing.player2 : pairing.player1,
+                        player2: reverse ? pairing.player1 : pairing.player2,
+                        round: leg,
+                        matchday: dayIndex + 1,
+                        fixtureOrder: fixtures.length,
+                    });
+                });
+            });
+        }
+
+        return fixtures;
+    },
+
+    sortFixtures(matches) {
+        // Stable sort keeps the generated matchday order. Completed fixtures
+        // still move below pending ones without re-grouping games by player ID.
+        return [...matches].sort((a, b) => Number(a.completed) - Number(b.completed));
+    },
+
     selectTournamentType(el) {
         document.querySelectorAll('.tournament-option').forEach(e => e.classList.remove('selected'));
         el.classList.add('selected');
@@ -406,25 +468,13 @@ const TournamentApp = {
     },
 
     generateLeague() {
-        const matches = [];
-        const players = this.state.players;
-
-        players.forEach((p1, i) => {
-            players.forEach((p2, j) => {
-                if (i < j) {
-                    matches.push({
-                        id: `${i}-${j}`,
-                        player1: p1,
-                        player2: p2,
-                        score1: null,
-                        score2: null,
-                        completed: false,
-                    });
-                }
-            });
-        });
-
-        this.state.matches = this.shuffle(matches);
+        this.state.matches = this.buildRoundRobinSchedule(this.state.players).map((fixture, index) => ({
+            ...fixture,
+            id: `L-${index + 1}`,
+            score1: null,
+            score2: null,
+            completed: false,
+        }));
         this.updateLeagueStandings();
     },
 
@@ -450,49 +500,30 @@ const TournamentApp = {
         if (this.state.useGroupStage) {
             this.state.groups = this.divideIntoGroups(players, 4);
             let matchId = 0;
-            for (let round = 1; round <= this.state.roundCount; round++) {
-                const roundMatches = [];
-                this.state.groups.forEach((group, groupIdx) => {
-                    group.forEach((p1, i) => {
-                        group.forEach((p2, j) => {
-                            if (i < j) {
-                                roundMatches.push({
-                                    id: `G${groupIdx + 1}-R${round}-${matchId}`,
-                                    round,
-                                    group: groupIdx + 1,
-                                    player1: p1,
-                                    player2: p2,
-                                    score1: null,
-                                    score2: null,
-                                    completed: false,
-                                });
-                                matchId++;
-                            }
-                        });
+            this.state.groups.forEach((group, groupIdx) => {
+                const groupFixtures = this.buildRoundRobinSchedule(group, this.state.roundCount);
+                groupFixtures.forEach(fixture => {
+                    matches.push({
+                        ...fixture,
+                        id: `G${groupIdx + 1}-${++matchId}`,
+                        group: groupIdx + 1,
+                        fixtureOrder: matchId - 1,
+                        score1: null,
+                        score2: null,
+                        completed: false,
                     });
                 });
-                matches.push(...this.shuffle(roundMatches));
-            }
+            });
         } else {
-            for (let round = 1; round <= this.state.roundCount; round++) {
-                const roundMatches = [];
-                players.forEach((p1, i) => {
-                    players.forEach((p2, j) => {
-                        if (i < j) {
-                            roundMatches.push({
-                                id: `R${round}-${i}-${j}`,
-                                round,
-                                player1: p1,
-                                player2: p2,
-                                score1: null,
-                                score2: null,
-                                completed: false,
-                            });
-                        }
-                    });
+            this.buildRoundRobinSchedule(players, this.state.roundCount).forEach((fixture, index) => {
+                matches.push({
+                    ...fixture,
+                    id: `R-${index + 1}`,
+                    score1: null,
+                    score2: null,
+                    completed: false,
                 });
-                matches.push(...this.shuffle(roundMatches));
-            }
+            });
         }
 
         this.state.matches = matches;
@@ -861,10 +892,7 @@ const TournamentApp = {
         html += '<h3 class="section-title">Fixtures</h3>';
         html += '<div class="matches-section">';
 
-        const allMatches = [...this.state.matches].sort((a, b) => {
-            if (a.completed !== b.completed) return a.completed - b.completed;
-            return a.id.localeCompare(b.id, undefined, { numeric: true });
-        });
+        const allMatches = this.sortFixtures(this.state.matches);
         allMatches.forEach(match => {
             html += this.matchItemHTML(match, '');
         });
@@ -954,10 +982,7 @@ const TournamentApp = {
                     `;
                     html += '<div class="matches-section">';
 
-                    const sorted = [...groupMatches].sort((a, b) => {
-                        if (a.completed !== b.completed) return a.completed - b.completed;
-                        return a.id.localeCompare(b.id, undefined, { numeric: true });
-                    });
+                    const sorted = this.sortFixtures(groupMatches);
                     sorted.forEach(match => {
                         html += this.matchItemHTML(match, '');
                     });
@@ -987,10 +1012,7 @@ const TournamentApp = {
                 `;
                 html += '<div class="matches-section">';
 
-                const sorted = [...roundMatches].sort((a, b) => {
-                    if (a.completed !== b.completed) return a.completed - b.completed;
-                    return a.id.localeCompare(b.id, undefined, { numeric: true });
-                });
+                const sorted = this.sortFixtures(roundMatches);
                 sorted.forEach(match => {
                     html += this.matchItemHTML(match, '');
                 });
