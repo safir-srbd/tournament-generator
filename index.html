@@ -4,155 +4,170 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tournament Generator</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏆</text></svg>">
+    <meta name="description" content="Create and run knockout, league, and round-robin tournaments.">
+    <meta name="color-scheme" content="light dark">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22><rect width=%2216%22 height=%2216%22 rx=%223%22 fill=%22%2317171a%22/><path d=%22M4 4v3l3 1.5V12M12 4v3L9 8.5V12%22 stroke=%22%23fff%22 stroke-width=%221.4%22 fill=%22none%22/></svg>">
+
     <script>
-        // Apply saved theme before first paint to avoid a flash
+        // Resolve theme before first paint — no flash, no layout shift.
         (function () {
             try {
                 var t = localStorage.getItem('tournament-theme');
                 if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
                 document.documentElement.dataset.theme = t;
-            } catch (e) { /* default to light */ }
+            } catch (e) { document.documentElement.dataset.theme = 'light'; }
         })();
     </script>
+
+    <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f%5B%5D=satoshi@400,500,600,700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <header>
-            <div class="header-text">
-                <h1>🏆 Tournament Generator</h1>
-                <p>Create and manage tournaments with ease</p>
+        <div class="topbar">
+            <div class="wordmark">
+                <strong>Tournament Generator</strong>
+                <span>knockout &middot; league &middot; round robin</span>
             </div>
-            <button type="button" class="theme-toggle" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
-        </header>
+            <button type="button" class="icon-btn" id="themeToggle" title="Toggle theme" aria-label="Toggle theme"></button>
+        </div>
 
-        <!-- Setup Screen -->
+        <!-- ===== Setup ===== -->
         <div id="setupScreen" class="screen active setup-screen">
-            <form id="tournamentForm">
-                <!-- Tournament Type Selection -->
+            <form id="tournamentForm" novalidate>
                 <div class="form-section">
-                    <h2>Tournament Type</h2>
+                    <div class="section-head">
+                        <h2>Format</h2>
+                        <p>Determines how fixtures are generated and how a winner is decided.</p>
+                    </div>
                     <div class="tournament-types">
                         <div class="tournament-option" data-type="knockout" role="button" tabindex="0">
-                            <div class="option-icon">🎯</div>
                             <h3>Knockout</h3>
-                            <p>Single elimination</p>
+                            <p>Single elimination bracket</p>
                         </div>
                         <div class="tournament-option" data-type="league" role="button" tabindex="0">
-                            <div class="option-icon">📊</div>
                             <h3>League</h3>
-                            <p>Points table</p>
+                            <p>Everyone plays once</p>
                         </div>
                         <div class="tournament-option" data-type="round-robin" role="button" tabindex="0">
-                            <div class="option-icon">⚽</div>
                             <h3>Round Robin</h3>
-                            <p>Multi-round football</p>
+                            <p>Multi-round, optional finals</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tournament Name -->
                 <div class="form-section">
-                    <label for="tournamentName">Tournament Name</label>
+                    <label for="tournamentName">Name</label>
                     <input
                         type="text"
                         id="tournamentName"
-                        placeholder="e.g., Summer Championship 2026"
+                        placeholder="Summer Championship 2026"
                         maxlength="50"
+                        autocomplete="off"
+                        spellcheck="false"
                     >
                 </div>
 
-                <!-- Round Robin Options -->
-                <div class="form-section options-panel" id="roundRobinOptions" style="display: none;">
-                    <h2>⚙️ Tournament Options</h2>
-
-                    <label>Number of Rounds</label>
-                    <div class="radio-pills">
-                        <label class="radio-pill">
-                            <input type="radio" name="roundCount" value="1" checked>
-                            <span>1 Round</span>
-                        </label>
-                        <label class="radio-pill">
-                            <input type="radio" name="roundCount" value="2">
-                            <span>2 Rounds</span>
-                        </label>
-                        <label class="radio-pill">
-                            <input type="radio" name="roundCount" value="3">
-                            <span>3 Rounds</span>
-                        </label>
+                <!-- Round robin only -->
+                <div class="form-section" id="roundRobinOptions" style="display: none;">
+                    <div class="section-head">
+                        <h2>Round robin options</h2>
                     </div>
+                    <div class="options-panel">
+                        <label>Rounds</label>
+                        <div class="radio-pills">
+                            <label class="radio-pill">
+                                <input type="radio" name="roundCount" value="1" checked>
+                                <span>1</span>
+                            </label>
+                            <label class="radio-pill">
+                                <input type="radio" name="roundCount" value="2">
+                                <span>2</span>
+                            </label>
+                            <label class="radio-pill">
+                                <input type="radio" name="roundCount" value="3">
+                                <span>3</span>
+                            </label>
+                        </div>
 
-                    <label class="checkbox-row">
-                        <input type="checkbox" id="useGroupStage">
-                        <span>Use Group Stage</span>
-                    </label>
-                    <p class="help-text">Divide teams into groups of 4–5, like the World Cup</p>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="useGroupStage">
+                            <span>Group stage</span>
+                        </label>
+                        <p class="help-text">Splits entrants into groups of four, World Cup style.</p>
 
-                    <label class="checkbox-row">
-                        <input type="checkbox" id="knockoutFinals" checked>
-                        <span>Add Knockout Finals</span>
-                    </label>
-                    <p class="help-text">Top teams from groups advance to a knockout bracket</p>
+                        <div class="divider-soft"></div>
 
-                    <label for="teamsAdvancing" class="field-gap">Teams Advancing to Finals</label>
-                    <select id="teamsAdvancing">
-                        <option value="2">Top 2 · Final Only</option>
-                        <option value="4">Top 4 · Semifinals</option>
-                        <option value="8">Top 8 · Quarterfinals</option>
-                        <option value="16">Top 16</option>
-                    </select>
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="knockoutFinals" checked>
+                            <span>Knockout finals</span>
+                        </label>
+                        <p class="help-text">Leading teams carry into an elimination bracket.</p>
+
+                        <label for="teamsAdvancing" class="field-gap">Teams advancing</label>
+                        <select id="teamsAdvancing">
+                            <option value="2">Top 2 &mdash; final only</option>
+                            <option value="4">Top 4 &mdash; semi-finals</option>
+                            <option value="8">Top 8 &mdash; quarter-finals</option>
+                            <option value="16">Top 16 &mdash; round of 16</option>
+                        </select>
+                    </div>
                 </div>
 
-                <!-- Players Input -->
                 <div class="form-section">
-                    <h2>Add Players/Teams</h2>
+                    <div class="section-head">
+                        <h2>Entrants</h2>
+                    </div>
                     <div class="input-tabs">
-                        <button type="button" class="input-tab active" data-tab="manual">Manual Entry</button>
-                        <button type="button" class="input-tab" data-tab="paste">Paste List</button>
+                        <button type="button" class="input-tab active" data-tab="manual">One by one</button>
+                        <button type="button" class="input-tab" data-tab="paste">Paste a list</button>
                     </div>
 
-                    <!-- Manual Entry Tab -->
                     <div class="input-content active" data-tab="manual">
-                        <label for="playerName">Player Name</label>
                         <div class="button-group">
                             <input
                                 type="text"
                                 id="playerName"
-                                placeholder="Enter player name"
+                                placeholder="Name"
                                 maxlength="30"
+                                autocomplete="off"
+                                spellcheck="false"
+                                aria-label="Player name"
                             >
-                            <button type="button" class="btn-primary btn-small" id="addPlayerBtn">Add Player</button>
+                            <button type="button" class="btn-secondary" id="addPlayerBtn">Add</button>
                         </div>
                     </div>
 
-                    <!-- Paste List Tab -->
                     <div class="input-content" data-tab="paste">
-                        <label for="playerList">Paste player names (comma-separated or one per line)</label>
                         <textarea
                             id="playerList"
-                            placeholder="Player 1, Player 2, Player 3&#10;or&#10;Player 1&#10;Player 2&#10;Player 3"
+                            spellcheck="false"
+                            aria-label="Player names"
+                            placeholder="Comma separated, or one name per line"
                         ></textarea>
-                        <button type="button" class="btn-primary btn-small" id="importPlayersBtn">Import Players</button>
-                        <p class="help-text">Max 64 players per tournament</p>
+                        <div class="button-group" style="margin-top: 8px;">
+                            <button type="button" class="btn-secondary" id="importPlayersBtn">Import names</button>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Players Display -->
-                <div class="form-section">
-                    <label>Players Added: <span id="playerCount">0</span>/64</label>
+                    <div class="roster-head" style="margin-top: 24px;">
+                        <span class="eyebrow">Roster</span>
+                        <span class="roster-count"><span id="playerCount">0</span> / 64</span>
+                    </div>
                     <div class="player-list" id="playersList"></div>
-                    <div class="button-group">
-                        <button type="button" class="btn-secondary btn-small" id="clearPlayersBtn">Clear All</button>
-                        <button type="button" class="btn-secondary btn-small" id="randomizeBtn">🎲 Randomize Order</button>
+                    <div class="button-group" style="margin-top: 12px;">
+                        <button type="button" class="btn-ghost btn-small" id="randomizeBtn">Shuffle order</button>
+                        <button type="button" class="btn-ghost btn-small" id="clearPlayersBtn">Clear all</button>
                     </div>
                 </div>
 
-                <!-- Form Actions -->
                 <div class="form-actions">
-                    <button type="submit" class="btn-primary" id="startBtn">Start Tournament</button>
-                    <button type="button" class="btn-secondary" id="loadBtn">Load Previous</button>
-                    <button type="button" class="btn-secondary" id="importBtn">📂 Import File</button>
+                    <button type="submit" class="btn-primary" id="startBtn">Start tournament</button>
+                    <button type="button" class="btn-secondary" id="loadBtn">Resume last</button>
+                    <button type="button" class="btn-secondary" id="importBtn">Import file</button>
                     <input type="file" id="importFile" accept=".json,application/json" hidden>
                 </div>
 
@@ -160,17 +175,17 @@
             </form>
         </div>
 
-        <!-- Tournament Screen -->
-        <div id="tournamentScreen" class="screen tournament-screen">
+        <!-- ===== Tournament ===== -->
+        <div id="tournamentScreen" class="screen">
             <div class="tournament-header">
                 <div>
                     <h2 id="tournamentTitle">Tournament</h2>
                     <p id="tournamentType" class="tournament-subtitle"></p>
                 </div>
                 <div class="tournament-controls">
-                    <button class="btn-secondary btn-small" id="exportBtn">📥 Export</button>
-                    <button class="btn-secondary btn-small" id="resetBtn">🔄 New Tournament</button>
-                    <button class="btn-danger btn-small" id="deleteBtn">🗑️ Delete</button>
+                    <button class="btn-secondary btn-small" id="exportBtn">Export</button>
+                    <button class="btn-secondary btn-small" id="resetBtn">New</button>
+                    <button class="btn-danger btn-small" id="deleteBtn">Delete</button>
                 </div>
             </div>
 
@@ -180,18 +195,18 @@
         </div>
     </div>
 
-    <!-- Score Modal -->
-    <div id="scoreModal" class="modal">
+    <!-- ===== Score entry ===== -->
+    <div id="scoreModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="matchInfo">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Enter Score</h2>
+                <h2>Result</h2>
                 <p id="matchInfo"></p>
             </div>
             <div id="matchForm" class="modal-body"></div>
             <div id="modalError" class="error" style="display: none;" role="alert"></div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" id="cancelBtn">Cancel</button>
-                <button type="button" class="btn-primary" id="submitScoreBtn">Save Score</button>
+                <button type="button" class="btn-primary" id="submitScoreBtn">Save</button>
             </div>
         </div>
     </div>

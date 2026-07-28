@@ -39,13 +39,19 @@ const TournamentApp = {
         this.setTheme(theme);
     },
 
+    // 15px stroked glyphs — crisper than emoji and they inherit currentColor
+    themeIcon: {
+        sun: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="8" cy="8" r="3.1"/><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3.05 3.05l1.13 1.13M11.82 11.82l1.13 1.13M12.95 3.05l-1.13 1.13M4.18 11.82l-1.13 1.13"/></svg>',
+        moon: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 9.7A5.9 5.9 0 0 1 6.3 2.5a5.9 5.9 0 1 0 7.2 7.2z"/></svg>',
+    },
+
     setTheme(theme) {
         document.documentElement.dataset.theme = theme;
         localStorage.setItem('tournament-theme', theme);
         const btn = document.getElementById('themeToggle');
         if (btn) {
-            btn.textContent = theme === 'dark' ? '☀️' : '🌙';
-            btn.title = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+            btn.innerHTML = theme === 'dark' ? this.themeIcon.sun : this.themeIcon.moon;
+            btn.title = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
         }
     },
 
@@ -218,14 +224,18 @@ const TournamentApp = {
         count.textContent = this.state.players.length;
 
         if (this.state.players.length === 0) {
-            container.innerHTML = '<p class="empty-players">No players added yet</p>';
+            container.innerHTML = '<p class="empty-players">No entrants yet.</p>';
             return;
         }
 
         container.innerHTML = this.state.players.map((player, idx) => `
             <div class="player-item">
-                <span><span class="player-num">${idx + 1}</span> ${this.esc(player)}</span>
-                <button type="button" class="btn-danger btn-small" onclick="TournamentApp.removePlayer(${idx})">Remove</button>
+                <span>
+                    <span class="player-num">${idx + 1}</span>
+                    <span class="player-name">${this.esc(player)}</span>
+                </span>
+                <button type="button" class="btn-icon" aria-label="Remove ${this.esc(player)}"
+                    onclick="TournamentApp.removePlayer(${idx})">&times;</button>
             </div>
         `).join('');
     },
@@ -572,25 +582,26 @@ const TournamentApp = {
 
         document.getElementById('tournamentTitle').textContent = this.state.tournamentName;
 
+        const sep = ' · ';
         let typeLabel;
         switch (this.state.tournamentType) {
             case 'knockout':
-                typeLabel = '🎯 Knockout · Single Elimination';
+                typeLabel = ['Knockout', 'single elimination'].join(sep);
                 break;
             case 'league':
-                typeLabel = '📊 League · Points Table';
+                typeLabel = ['League', 'points table'].join(sep);
                 break;
             case 'round-robin': {
-                let typeStr = '⚽ Round Robin';
+                const parts = ['Round robin'];
                 if (this.state.useGroupStage) {
-                    typeStr += ` · ${this.state.groups.length} Groups`;
+                    parts.push(`${this.state.groups.length} groups`);
                 } else {
-                    typeStr += ` · ${this.state.roundCount} Round${this.state.roundCount > 1 ? 's' : ''}`;
+                    parts.push(`${this.state.roundCount} round${this.state.roundCount > 1 ? 's' : ''}`);
                 }
-                const finals = this.state.hasKnockoutFinals
-                    ? (this.state.teamsAdvancing === 2 ? ' + Final' : ` + Knockouts`)
-                    : '';
-                typeLabel = typeStr + finals;
+                if (this.state.hasKnockoutFinals) {
+                    parts.push(this.state.teamsAdvancing === 2 ? 'final' : 'knockout finals');
+                }
+                typeLabel = parts.join(sep);
                 break;
             }
             default:
@@ -639,89 +650,104 @@ const TournamentApp = {
         const champion = this.getChampion();
         if (!champion) return '';
         return `
-            <div class="champion-banner">
-                <div class="champion-trophy">🏆</div>
-                <div>
-                    <div class="champion-label">Champion</div>
-                    <div class="champion-name">${this.esc(champion)}</div>
-                </div>
+            <div class="champion">
+                <div class="champion-label">Champion</div>
+                <div class="champion-name">${this.esc(champion)}</div>
             </div>
         `;
     },
 
     statsHTML(cards) {
         return cards.map(c => `
-            <div class="stat-card">
+            <div class="stat">
                 <div class="stat-label">${c.label}</div>
                 <div class="stat-value">${c.value}</div>
                 ${c.progress !== undefined ? `
-                    <div class="progress-track"><div class="progress-fill" style="width: ${c.progress}%"></div></div>
+                    <div class="meter"><span style="width: ${c.progress}%"></span></div>
                 ` : ''}
             </div>
         `).join('');
     },
 
+    // Every card is exactly two fixed-height rows tall, with no inner button.
+    // Uniform height is what lets the bracket connectors line up exactly.
     matchCardHTML(match, idPrefix) {
         const isPlaceholder = p => p === 'BYE' || p === 'TBD';
         const ready = !isPlaceholder(match.player1) && !isPlaceholder(match.player2);
-        const stateClass = match.completed && match.winner ? 'completed' : '';
 
-        const row = (player, score) => `
-            <div class="player-score ${match.winner && match.winner === player ? 'winner' : ''} ${isPlaceholder(player) ? 'placeholder' : ''}">
+        const cls = ['match-card'];
+        if (match.completed && match.winner) cls.push('is-done');
+
+        const row = (player, score) => {
+            const rowCls = ['ps'];
+            if (match.winner && match.winner === player) rowCls.push('is-win');
+            if (isPlaceholder(player)) rowCls.push('is-ph');
+            return `<span class="${rowCls.join(' ')}">
                 <span class="ps-name">${this.esc(player)}</span>
-                <span class="ps-score">${score !== null ? score : '–'}</span>
-            </div>
-        `;
+                <span class="ps-score">${score !== null ? score : '·'}</span>
+            </span>`;
+        };
 
-        let html = `<div class="match-card ${stateClass}">`;
-        html += row(match.player1, match.score1);
-        html += row(match.player2, match.score2);
+        const label = !ready ? 'Awaiting result'
+            : match.completed ? `Edit result: ${match.player1} vs ${match.player2}`
+            : `Enter result: ${match.player1} vs ${match.player2}`;
 
-        if (ready && !match.completed) {
-            html += `<button type="button" class="btn-primary btn-small btn-block" onclick="TournamentApp.openScoreModal('${idPrefix}${match.id}')">Enter Score</button>`;
-        } else if (ready && match.completed) {
-            html += `<button type="button" class="btn-ghost btn-small btn-block" onclick="TournamentApp.openScoreModal('${idPrefix}${match.id}')">✏️ Edit Score</button>`;
-        }
-
-        html += '</div>';
-        return html;
+        // The whole card is the control — keyboard and focus come free.
+        return `<button type="button" class="${cls.join(' ')}" title="${this.esc(label)}"
+            ${ready ? `onclick="TournamentApp.openScoreModal('${idPrefix}${match.id}')"` : 'disabled'}>
+            ${row(match.player1, match.score1)}
+            ${row(match.player2, match.score2)}
+        </button>`;
     },
 
+    roundLabel(round, totalRounds) {
+        switch (totalRounds - round) {
+            case 0: return 'Final';
+            case 1: return 'Semi-finals';
+            case 2: return 'Quarter-finals';
+            case 3: return 'Round of 16';
+            default: return `Round ${round}`;
+        }
+    },
+
+    /*
+     * Renders the bracket as a recursive tree rather than independent columns.
+     * Each node is [feeders | self] laid out as a vertically centred flex row,
+     * so a match always lands on the midpoint of the two matches feeding it —
+     * at any depth, without measuring anything. Match `r-i` is fed by
+     * `(r-1)-2i` and `(r-1)-(2i+1)`, mirroring advanceWinner().
+     */
     bracketHTML(matches, idPrefix) {
-        const rounds = {};
-        matches.forEach(m => {
-            (rounds[m.round] = rounds[m.round] || []).push(m);
-        });
+        if (matches.length === 0) return '';
 
-        const roundNums = Object.keys(rounds).map(Number).sort((a, b) => a - b);
-        const totalRounds = roundNums[roundNums.length - 1];
+        const totalRounds = matches.reduce((max, m) => Math.max(max, m.round), 1);
+        const pos = m => parseInt(m.id.split('-')[1], 10);
+        const at = (round, index) => matches.find(m => m.round === round && pos(m) === index);
 
-        let html = '<div class="bracket-view"><div class="bracket">';
-        roundNums.forEach((round, idx) => {
-            const fromEnd = totalRounds - round;
-            let title;
-            if (fromEnd === 0) title = '🏆 Final';
-            else if (fromEnd === 1) title = 'Semi-Finals';
-            else if (fromEnd === 2) title = 'Quarter-Finals';
-            else title = `Round ${round}`;
+        const node = (round, index) => {
+            const match = at(round, index);
+            if (!match) return '';
+            const self = `<div class="node-self">${this.matchCardHTML(match, idPrefix)}</div>`;
+            if (round === 1) {
+                return `<div class="node leaf">${self}</div>`;
+            }
+            return `<div class="node">
+                <div class="node-children">${node(round - 1, index * 2)}${node(round - 1, index * 2 + 1)}</div>
+                ${self}
+            </div>`;
+        };
 
-            const isLastRound = idx === roundNums.length - 1;
-            const matchesInRound = rounds[round].length;
-            const matchesInNextRound = !isLastRound ? rounds[roundNums[idx + 1]].length : 0;
-            const spacingFactor = matchesInNextRound > 0 ? Math.ceil(matchesInRound / matchesInNextRound) : 1;
+        let headers = '';
+        for (let r = 1; r <= totalRounds; r++) {
+            headers += `<span>${this.roundLabel(r, totalRounds)}</span>`;
+        }
 
-            html += `<div class="bracket-round">
-                        <div class="bracket-round-title">${title}</div>`;
-            rounds[round].forEach((match, matchIdx) => {
-                const matchSpacing = !isLastRound && spacingFactor > 1 && matchIdx > 0 && matchIdx % spacingFactor === 0
-                    ? `<div class="bracket-spacer" style="height: ${(spacingFactor - 1) * 60}px;"></div>`
-                    : '';
-                html += matchSpacing + this.matchCardHTML(match, idPrefix);
-            });
-            html += '</div>';
-        });
-        html += '</div></div>';
-        return html;
+        return `<div class="bracket-view">
+            <div class="bracket">
+                <div class="bracket-rounds">${headers}</div>
+                <div class="bracket-tree">${node(totalRounds, 0)}</div>
+            </div>
+        </div>`;
     },
 
     matchItemHTML(match, idPrefix) {
@@ -729,25 +755,23 @@ const TournamentApp = {
         const winner1 = match.completed && match.score1 > match.score2;
         const winner2 = match.completed && match.score2 > match.score1;
         return `
-            <div class="match-item ${match.completed ? 'is-complete' : ''}">
-                <div class="match-teams">
-                    <div class="team-row ${winner1 ? 'winner' : ''}">
-                        <span class="team-name">${this.esc(match.player1)}</span>
-                        <span class="team-score">${scoreOf(match.score1)}</span>
-                    </div>
-                    <div class="team-row ${winner2 ? 'winner' : ''}">
-                        <span class="team-name">${this.esc(match.player2)}</span>
-                        <span class="team-score">${scoreOf(match.score2)}</span>
-                    </div>
-                </div>
-                <div class="match-actions">
-                    <span class="match-status ${match.completed ? 'completed' : 'pending'}">
-                        ${match.completed ? 'Complete' : 'Pending'}
+            <div class="match-row ${match.completed ? 'is-done' : ''}">
+                <div class="mr-teams">
+                    <span class="mr-team ${winner1 ? 'is-win' : ''}">
+                        <span class="mr-name">${this.esc(match.player1)}</span>
+                        <span class="mr-score">${scoreOf(match.score1)}</span>
                     </span>
-                    <button type="button" class="${match.completed ? 'btn-ghost' : 'btn-primary'} btn-small"
-                        onclick="TournamentApp.openScoreModal('${idPrefix}${match.id}')">
-                        ${match.completed ? '✏️ Edit' : 'Enter Score'}
-                    </button>
+                    <span class="mr-team ${winner2 ? 'is-win' : ''}">
+                        <span class="mr-name">${this.esc(match.player2)}</span>
+                        <span class="mr-score">${scoreOf(match.score2)}</span>
+                    </span>
+                </div>
+                <div class="mr-action">
+                    ${match.completed
+                        ? `<button type="button" class="btn-ghost btn-small"
+                               onclick="TournamentApp.openScoreModal('${idPrefix}${match.id}')">Edit</button>`
+                        : `<button type="button" class="btn-secondary btn-small"
+                               onclick="TournamentApp.openScoreModal('${idPrefix}${match.id}')">Result</button>`}
                 </div>
             </div>
         `;
@@ -765,7 +789,7 @@ const TournamentApp = {
             html += `
                 <tr class="${isAdvancing ? 'advancing' : ''}">
                     <td><span class="league-position">${idx + 1}</span></td>
-                    <td class="col-team"><strong>${this.esc(standing.player)}</strong>${isAdvancing ? ' <span class="advance-check">✓</span>' : ''}</td>
+                    <td class="col-team">${this.esc(standing.player)}${isAdvancing ? '<span class="advance-check">adv</span>' : ''}</td>
                     <td>${standing.played}</td>
                     <td>${standing.won}</td>
                     <td>${standing.drawn}</td>
@@ -791,8 +815,8 @@ const TournamentApp = {
         const totalRounds = this.state.matches.reduce((max, m) => Math.max(max, m.round), 1);
 
         statsSection.innerHTML = this.statsHTML([
-            { label: 'Players', value: this.state.players.length },
-            { label: 'Matches Complete', value: `${completed}/${total}`, progress: percentage },
+            { label: 'Entrants', value: this.state.players.length },
+            { label: 'Matches played', value: `${completed}/${total}`, progress: percentage },
             { label: 'Rounds', value: totalRounds },
         ]);
         statsSection.style.display = 'grid';
@@ -813,16 +837,16 @@ const TournamentApp = {
 
         statsSection.innerHTML = this.statsHTML([
             { label: 'Teams', value: this.state.players.length },
-            { label: 'Matches Complete', value: `${completed}/${total}`, progress: percentage },
-            { label: 'Scoring · W-D-L', value: '3-1-0' },
+            { label: 'Matches played', value: `${completed}/${total}`, progress: percentage },
+            { label: 'W / D / L', value: '3 · 1 · 0' },
         ]);
         statsSection.style.display = 'grid';
 
         let html = this.championBannerHTML();
-        html += '<h3 class="section-title">League Table</h3>';
+        html += '<h3 class="section-title">Table</h3>';
         html += this.standingsTableHTML(false);
 
-        html += '<h3 class="section-title">Matches</h3>';
+        html += '<h3 class="section-title">Fixtures</h3>';
         html += '<div class="matches-section">';
 
         const allMatches = [...this.state.matches].sort((a, b) => {
@@ -855,9 +879,9 @@ const TournamentApp = {
         }
 
         const stats = [
-            { label: this.state.useGroupStage ? 'Group Matches' : 'League Matches', value: `${completed}/${total}`, progress: percentage },
+            { label: this.state.useGroupStage ? 'Group matches' : 'League matches', value: `${completed}/${total}`, progress: percentage },
             { label: this.state.useGroupStage ? 'Groups' : 'Rounds', value: this.state.useGroupStage ? this.state.groups.length : this.state.roundCount },
-            { label: 'Scoring · W-D-L', value: '⚽ 3-1-0' },
+            { label: 'W / D / L', value: '3 · 1 · 0' },
         ];
         if (this.state.hasKnockoutFinals && this.state.knockoutMatches.length > 0) {
             const koPlayable = this.state.knockoutMatches.filter(m => m.player2 !== 'BYE');
@@ -886,7 +910,7 @@ const TournamentApp = {
                     html += `
                         <tr>
                             <td><span class="league-position">${idx + 1}</span></td>
-                            <td class="col-team"><strong>${this.esc(standing.player)}</strong></td>
+                            <td class="col-team">${this.esc(standing.player)}</td>
                             <td>${standing.played}</td>
                             <td>${standing.won}</td>
                             <td>${standing.drawn}</td>
@@ -964,7 +988,7 @@ const TournamentApp = {
         }
 
         if (this.state.hasKnockoutFinals && leagueDone && this.state.knockoutMatches.length > 0) {
-            const koTitle = this.state.teamsAdvancing === 2 ? '🏆 Championship Final' : '🏆 Knockout Finals';
+            const koTitle = this.state.teamsAdvancing === 2 ? 'Championship final' : 'Knockout finals';
             html += `<h2 class="finals-heading">${koTitle}</h2>`;
             html += this.bracketHTML(this.state.knockoutMatches, 'knockout-');
         }
