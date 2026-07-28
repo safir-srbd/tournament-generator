@@ -130,6 +130,14 @@ const TournamentApp = {
             .replace(/'/g, '&#39;');
     },
 
+    shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    },
+
     selectTournamentType(el) {
         document.querySelectorAll('.tournament-option').forEach(e => e.classList.remove('selected'));
         el.classList.add('selected');
@@ -416,7 +424,7 @@ const TournamentApp = {
             });
         });
 
-        this.state.matches = matches;
+        this.state.matches = this.shuffle(matches);
         this.updateLeagueStandings();
     },
 
@@ -443,11 +451,12 @@ const TournamentApp = {
             this.state.groups = this.divideIntoGroups(players, 4);
             let matchId = 0;
             for (let round = 1; round <= this.state.roundCount; round++) {
+                const roundMatches = [];
                 this.state.groups.forEach((group, groupIdx) => {
                     group.forEach((p1, i) => {
                         group.forEach((p2, j) => {
                             if (i < j) {
-                                matches.push({
+                                roundMatches.push({
                                     id: `G${groupIdx + 1}-R${round}-${matchId}`,
                                     round,
                                     group: groupIdx + 1,
@@ -462,13 +471,15 @@ const TournamentApp = {
                         });
                     });
                 });
+                matches.push(...this.shuffle(roundMatches));
             }
         } else {
             for (let round = 1; round <= this.state.roundCount; round++) {
+                const roundMatches = [];
                 players.forEach((p1, i) => {
                     players.forEach((p2, j) => {
                         if (i < j) {
-                            matches.push({
+                            roundMatches.push({
                                 id: `R${round}-${i}-${j}`,
                                 round,
                                 player1: p1,
@@ -480,6 +491,7 @@ const TournamentApp = {
                         }
                     });
                 });
+                matches.push(...this.shuffle(roundMatches));
             }
         }
 
