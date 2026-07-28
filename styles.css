@@ -891,9 +891,10 @@ button:active {
 
 .bracket {
     display: flex;
-    gap: 36px;
+    gap: 50px;
     min-width: fit-content;
     padding: 12px 4px;
+    position: relative;
 }
 
 .bracket-round {
@@ -902,6 +903,17 @@ button:active {
     justify-content: space-around;
     min-width: 210px;
     gap: 16px;
+    position: relative;
+}
+
+.bracket-round:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: -50px;
+    top: 0;
+    bottom: 0;
+    width: 36px;
+    pointer-events: none;
 }
 
 .bracket-round-title {
@@ -919,6 +931,7 @@ button:active {
     border-radius: 12px;
     padding: 12px;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
 }
 
 .match-card:hover {
@@ -929,6 +942,25 @@ button:active {
 .match-card.completed {
     border-color: var(--success);
     background: var(--success-soft);
+}
+
+.match-card::after {
+    content: '';
+    position: absolute;
+    right: -37px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 2px;
+    background: var(--border-strong);
+}
+
+.bracket-round:last-child .match-card::after {
+    display: none;
+}
+
+.bracket-spacer {
+    flex-shrink: 0;
 }
 
 .player-score {

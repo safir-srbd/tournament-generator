@@ -697,7 +697,7 @@ const TournamentApp = {
         const totalRounds = roundNums[roundNums.length - 1];
 
         let html = '<div class="bracket-view"><div class="bracket">';
-        roundNums.forEach(round => {
+        roundNums.forEach((round, idx) => {
             const fromEnd = totalRounds - round;
             let title;
             if (fromEnd === 0) title = '🏆 Final';
@@ -705,9 +705,18 @@ const TournamentApp = {
             else if (fromEnd === 2) title = 'Quarter-Finals';
             else title = `Round ${round}`;
 
-            html += `<div class="bracket-round"><div class="bracket-round-title">${title}</div>`;
-            rounds[round].forEach(match => {
-                html += this.matchCardHTML(match, idPrefix);
+            const isLastRound = idx === roundNums.length - 1;
+            const matchesInRound = rounds[round].length;
+            const matchesInNextRound = !isLastRound ? rounds[roundNums[idx + 1]].length : 0;
+            const spacingFactor = matchesInNextRound > 0 ? Math.ceil(matchesInRound / matchesInNextRound) : 1;
+
+            html += `<div class="bracket-round">
+                        <div class="bracket-round-title">${title}</div>`;
+            rounds[round].forEach((match, matchIdx) => {
+                const matchSpacing = !isLastRound && spacingFactor > 1 && matchIdx > 0 && matchIdx % spacingFactor === 0
+                    ? `<div class="bracket-spacer" style="height: ${(spacingFactor - 1) * 60}px;"></div>`
+                    : '';
+                html += matchSpacing + this.matchCardHTML(match, idPrefix);
             });
             html += '</div>';
         });
