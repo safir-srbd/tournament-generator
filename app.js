@@ -16,6 +16,7 @@ const TournamentApp = {
             currentRound: 1,
             knockoutMatches: [],
             useGroupStage: false,
+            groupCount: 0,
             groups: [],
         };
     },
@@ -83,6 +84,9 @@ const TournamentApp = {
         document.getElementById('importPlayersBtn').addEventListener('click', () => this.importPlayers());
         document.getElementById('clearPlayersBtn').addEventListener('click', () => this.clearPlayers());
         document.getElementById('randomizeBtn').addEventListener('click', () => this.randomizePlayers());
+        document.getElementById('useGroupStage').addEventListener('change', (e) => {
+            document.getElementById('groupCountField').style.display = e.target.checked ? 'block' : 'none';
+        });
 
         document.getElementById('tournamentForm').addEventListener('submit', (e) => {
             e.preventDefault();
@@ -332,6 +336,19 @@ const TournamentApp = {
         if (this.state.tournamentType === 'round-robin') {
             this.state.roundCount = parseInt(document.querySelector('input[name="roundCount"]:checked').value, 10) || 1;
             this.state.useGroupStage = document.getElementById('useGroupStage').checked;
+            const groupCountValue = Number(document.getElementById('groupCount').value);
+            if (this.state.useGroupStage) {
+                const maxGroupCount = Math.floor(this.state.players.length / 2);
+                if (!Number.isInteger(groupCountValue) || groupCountValue < 0) {
+                    this.showError('Number of groups must be 0 or a positive whole number');
+                    return;
+                }
+                if (groupCountValue > maxGroupCount) {
+                    this.showError(`Use at most ${maxGroupCount} groups so every group has at least 2 entrants`);
+                    return;
+                }
+            }
+            this.state.groupCount = this.state.useGroupStage ? groupCountValue : 0;
             this.state.hasKnockoutFinals = document.getElementById('knockoutFinals').checked;
             this.state.teamsAdvancing = parseInt(document.getElementById('teamsAdvancing').value, 10);
         }
@@ -478,9 +495,10 @@ const TournamentApp = {
         this.updateLeagueStandings();
     },
 
-    divideIntoGroups(players, groupSize = 4) {
+    divideIntoGroups(players, requestedGroupCount = 0, groupSize = 4) {
         const groups = [];
-        const numGroups = Math.ceil(players.length / groupSize);
+        const automaticGroupCount = Math.ceil(players.length / groupSize);
+        const numGroups = requestedGroupCount > 0 ? requestedGroupCount : automaticGroupCount;
         const baseSize = Math.floor(players.length / numGroups);
         const extraTeams = players.length % numGroups;
 
@@ -498,7 +516,7 @@ const TournamentApp = {
         const players = this.state.players;
 
         if (this.state.useGroupStage) {
-            this.state.groups = this.divideIntoGroups(players, 4);
+            this.state.groups = this.divideIntoGroups(players, this.state.groupCount, 4);
             let matchId = 0;
             this.state.groups.forEach((group, groupIdx) => {
                 const groupFixtures = this.buildRoundRobinSchedule(group, this.state.roundCount);
@@ -1146,6 +1164,8 @@ const TournamentApp = {
         document.querySelectorAll('.tournament-option').forEach(e => e.classList.remove('selected'));
         document.getElementById('roundRobinOptions').style.display = 'none';
         document.getElementById('useGroupStage').checked = false;
+        document.getElementById('groupCount').value = '0';
+        document.getElementById('groupCountField').style.display = 'none';
         document.getElementById('knockoutFinals').checked = true;
         this.renderPlayerList();
     },
