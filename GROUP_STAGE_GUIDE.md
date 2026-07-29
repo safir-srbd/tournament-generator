@@ -22,15 +22,17 @@ The **Group Stage** feature divides teams into groups (like the FIFA World Cup),
 ### Step 1: Setup
 1. Choose **⚽ Round Robin** tournament
 2. Set **Number of Rounds** (1, 2, or 3 — each round happens within groups)
-3. Check **"Use Group Stage"** ← NEW!
-4. Check **"Add Knockout Finals"** (optional)
-5. Select **"Teams Advancing"** (how many teams per group advance)
+3. Check **"Use Group Stage"**
+4. Enter the **Number of groups**, or enter **0** for automatic grouping
+5. Check **"Add Knockout Finals"** (optional)
+6. Select **"Teams Advancing"**
 
 ### Step 2: Teams Divided Into Groups
-Teams are automatically divided into balanced groups of 4–5:
+With the number of groups set to **0**, teams are automatically divided into
+balanced groups of about four:
 - **8 teams** → 2 groups of 4
 - **12 teams** → 3 groups of 4
-- **10 teams** → 2 groups (one 5, one 5)
+- **10 teams** → 3 groups (one 4, two 3)
 - **16 teams** → 4 groups of 4
 - **20 teams** → 4 groups of 5
 
@@ -150,8 +152,9 @@ A: No. Groups are fixed once the tournament starts.
 **Q: What if a group has fewer teams?**  
 A: Groups are auto-balanced. If needed, one group has 5 and others have 4.
 
-**Q: Can I change the group size (not 4–5)?**  
-A: Not yet — it's fixed at 4–5 for now (World Cup standard).
+**Q: Can I choose the number of groups?**  
+A: Yes. Enter a positive whole number in **Number of groups**, or enter **0**
+to use the automatic grouping logic.
 
 **Q: Does round-robin with groups support multi-round?**  
 A: Yes! Use 2 or 3 rounds and each group plays that many times.
