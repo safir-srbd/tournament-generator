@@ -11,6 +11,7 @@ const TournamentApp = {
             matches: [],
             standings: [],
             roundCount: 1,
+            leagueRoundCount: 1,
             hasKnockoutFinals: false,
             teamsAdvancing: 4,
             currentRound: 1,
@@ -210,7 +211,9 @@ const TournamentApp = {
         this.state.tournamentType = el.dataset.type;
 
         const rrOptions = document.getElementById('roundRobinOptions');
+        const leagueOptions = document.getElementById('leagueOptions');
         rrOptions.style.display = el.dataset.type === 'round-robin' ? 'block' : 'none';
+        leagueOptions.style.display = el.dataset.type === 'league' ? 'block' : 'none';
     },
 
     switchTab(e) {
@@ -332,6 +335,10 @@ const TournamentApp = {
         }
 
         this.state.tournamentName = name || `${this.state.tournamentType} Tournament`;
+
+        if (this.state.tournamentType === 'league') {
+            this.state.leagueRoundCount = parseInt(document.querySelector('input[name="leagueRoundCount"]:checked').value, 10) || 1;
+        }
 
         if (this.state.tournamentType === 'round-robin') {
             this.state.roundCount = parseInt(document.querySelector('input[name="roundCount"]:checked').value, 10) || 1;
@@ -485,13 +492,23 @@ const TournamentApp = {
     },
 
     generateLeague() {
-        this.state.matches = this.buildRoundRobinSchedule(this.state.players).map((fixture, index) => ({
-            ...fixture,
-            id: `L-${index + 1}`,
-            score1: null,
-            score2: null,
-            completed: false,
-        }));
+        const matches = [];
+        const baseFixtures = this.buildRoundRobinSchedule(this.state.players);
+        let matchIndex = 0;
+
+        for (let round = 1; round <= this.state.leagueRoundCount; round++) {
+            const roundMatches = baseFixtures.map((fixture) => ({
+                ...fixture,
+                id: `L-R${round}-${matchIndex++}`,
+                round,
+                score1: null,
+                score2: null,
+                completed: false,
+            }));
+            matches.push(...this.shuffle(roundMatches));
+        }
+
+        this.state.matches = matches;
         this.updateLeagueStandings();
     },
 
@@ -907,15 +924,40 @@ const TournamentApp = {
         html += '<h3 class="section-title">Table</h3>';
         html += this.standingsTableHTML(false);
 
-        html += '<h3 class="section-title">Fixtures</h3>';
-        html += '<div class="matches-section">';
-
-        const allMatches = this.sortFixtures(this.state.matches);
-        allMatches.forEach(match => {
-            html += this.matchItemHTML(match, '');
+        // Group matches by round
+        const rounds = {};
+        this.state.matches.forEach(m => {
+            const round = m.round || 1;
+            (rounds[round] = rounds[round] || []).push(m);
         });
 
-        html += '</div>';
+        const roundNums = Object.keys(rounds).map(Number).sort((a, b) => a - b);
+
+        if (roundNums.length > 0) {
+            html += '<h3 class="section-title">Fixtures</h3>';
+            roundNums.forEach(round => {
+                const roundMatches = rounds[round];
+                const roundDone = roundMatches.filter(m => m.completed).length;
+                html += `
+                    <div class="section-title-row">
+                        <h3 class="section-title">Round ${round}</h3>
+                        <span class="section-hint">${roundDone}/${roundMatches.length} complete</span>
+                    </div>
+                `;
+                html += '<div class="matches-section">';
+
+                const sorted = [...roundMatches].sort((a, b) => {
+                    if (a.completed !== b.completed) return a.completed - b.completed;
+                    return a.id.localeCompare(b.id, undefined, { numeric: true });
+                });
+                sorted.forEach(match => {
+                    html += this.matchItemHTML(match, '');
+                });
+
+                html += '</div>';
+            });
+        }
+
         content.innerHTML = html;
     },
 
