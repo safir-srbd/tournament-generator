@@ -190,6 +190,7 @@ const TournamentApp = {
                         player2: reverse ? pairing.player1 : pairing.player2,
                         round: leg,
                         matchday: dayIndex + 1,
+                        gameweek: ((leg - 1) * matchdayCount) + dayIndex + 1,
                         fixtureOrder: fixtures.length,
                     });
                 });
@@ -203,6 +204,42 @@ const TournamentApp = {
         // Stable sort keeps the generated matchday order. Completed fixtures
         // still move below pending ones without re-grouping games by player ID.
         return [...matches].sort((a, b) => Number(a.completed) - Number(b.completed));
+    },
+
+    gameweeksHTML(matches) {
+        const gameweeks = {};
+        const legacyMatchdayCount = matches.reduce(
+            (max, match) => Math.max(max, match.matchday || 1),
+            1
+        );
+        matches.forEach(match => {
+            // Derive continuous numbering for saved fixtures created before
+            // the explicit `gameweek` field was introduced.
+            const gameweek = match.gameweek || (
+                (((match.round || 1) - 1) * legacyMatchdayCount) + (match.matchday || 1)
+            );
+            (gameweeks[gameweek] = gameweeks[gameweek] || []).push(match);
+        });
+
+        return Object.keys(gameweeks)
+            .map(Number)
+            .sort((a, b) => a - b)
+            .map(gameweek => {
+                const fixtures = gameweeks[gameweek];
+                const completed = fixtures.filter(match => match.completed).length;
+                const fixtureRows = this.sortFixtures(fixtures)
+                    .map(match => this.matchItemHTML(match, ''))
+                    .join('');
+
+                return `
+                    <div class="section-title-row gameweek-title-row">
+                        <h4 class="section-title">Gameweek ${gameweek}</h4>
+                        <span class="section-hint">${completed}/${fixtures.length} complete</span>
+                    </div>
+                    <div class="matches-section">${fixtureRows}</div>
+                `;
+            })
+            .join('');
     },
 
     selectTournamentType(el) {
@@ -492,23 +529,16 @@ const TournamentApp = {
     },
 
     generateLeague() {
-        const matches = [];
-        const baseFixtures = this.buildRoundRobinSchedule(this.state.players);
-        let matchIndex = 0;
-
-        for (let round = 1; round <= this.state.leagueRoundCount; round++) {
-            const roundMatches = baseFixtures.map((fixture) => ({
-                ...fixture,
-                id: `L-R${round}-${matchIndex++}`,
-                round,
-                score1: null,
-                score2: null,
-                completed: false,
-            }));
-            matches.push(...this.shuffle(roundMatches));
-        }
-
-        this.state.matches = matches;
+        this.state.matches = this.buildRoundRobinSchedule(
+            this.state.players,
+            this.state.leagueRoundCount
+        ).map((fixture, index) => ({
+            ...fixture,
+            id: `L-${index + 1}`,
+            score1: null,
+            score2: null,
+            completed: false,
+        }));
         this.updateLeagueStandings();
     },
 
@@ -924,7 +954,7 @@ const TournamentApp = {
         html += '<h3 class="section-title">Table</h3>';
         html += this.standingsTableHTML(false);
 
-        // Group matches by round
+        // A round is a complete leg; gameweeks separate its fixture dates.
         const rounds = {};
         this.state.matches.forEach(m => {
             const round = m.round || 1;
@@ -944,17 +974,7 @@ const TournamentApp = {
                         <span class="section-hint">${roundDone}/${roundMatches.length} complete</span>
                     </div>
                 `;
-                html += '<div class="matches-section">';
-
-                const sorted = [...roundMatches].sort((a, b) => {
-                    if (a.completed !== b.completed) return a.completed - b.completed;
-                    return a.id.localeCompare(b.id, undefined, { numeric: true });
-                });
-                sorted.forEach(match => {
-                    html += this.matchItemHTML(match, '');
-                });
-
-                html += '</div>';
+                html += this.gameweeksHTML(roundMatches);
             });
         }
 
@@ -1040,14 +1060,7 @@ const TournamentApp = {
                             <span class="section-hint">${roundDone}/${groupMatches.length} complete</span>
                         </div>
                     `;
-                    html += '<div class="matches-section">';
-
-                    const sorted = this.sortFixtures(groupMatches);
-                    sorted.forEach(match => {
-                        html += this.matchItemHTML(match, '');
-                    });
-
-                    html += '</div>';
+                    html += this.gameweeksHTML(groupMatches);
                 }
             }
         } else {
@@ -1070,14 +1083,7 @@ const TournamentApp = {
                         <span class="section-hint">${roundDone}/${roundMatches.length} complete</span>
                     </div>
                 `;
-                html += '<div class="matches-section">';
-
-                const sorted = this.sortFixtures(roundMatches);
-                sorted.forEach(match => {
-                    html += this.matchItemHTML(match, '');
-                });
-
-                html += '</div>';
+                html += this.gameweeksHTML(roundMatches);
             }
         }
 
