@@ -944,6 +944,15 @@ button {
     margin: 0;
 }
 
+.gameweek-title-row {
+    margin-top: var(--s-5);
+    margin-bottom: var(--s-3);
+}
+
+.gameweek-title-row .section-title {
+    font-size: var(--step--1);
+}
+
 .section-hint {
     color: var(--text-3);
     font-variant-numeric: tabular-nums;
